@@ -714,6 +714,107 @@ static void test_r_from_stieltjes(void) {
 }
 
 /* ============================================================
+ * Test: S-transform of MP(1) should be 1/(z+1)
+ * ============================================================ */
+static void test_s_transform_mp1_exact(void) {
+    TEST("S-transform of MP(1) = 1/(z+1) series");
+    
+    double mp_moments[8];
+    marchenko_pastur_moments(1.0, 8, mp_moments);
+    
+    double s_coeffs[8];
+    s_transform_from_moments(mp_moments, 8, s_coeffs);
+    
+    /* S(z) = 1/(z+1) = 1 - z + z^2 - z^3 + ... */
+    for (int i = 0; i < 8; i++) {
+        double expected = pow(-1.0, (double)i);
+        ASSERT_FEQ(s_coeffs[i], expected, 1e-6);
+    }
+    
+    /* Evaluate S(0.5) = 1/1.5 = 0.6667 */
+    double z = 0.5, s_val = 0.0, zpow = 1.0;
+    for (int i = 0; i < 8; i++) {
+        s_val += s_coeffs[i] * zpow;
+        zpow *= z;
+    }
+    ASSERT_FEQ(s_val, 1.0 / (1.0 + z), 5e-3);
+    
+    PASS();
+}
+
+/* ============================================================
+ * Test: S-transform is non-trivial (not constant)
+ * ============================================================ */
+static void test_s_transform_nontrivial(void) {
+    TEST("S-transform coefficients are non-trivial");
+    
+    double mp_moments[6];
+    marchenko_pastur_moments(0.7, 6, mp_moments);
+    
+    double s_coeffs[6];
+    s_transform_from_moments(mp_moments, 6, s_coeffs);
+    
+    /* s_0 should be 1 (since m_1 = 1 for MP) */
+    ASSERT_FEQ(s_coeffs[0], 1.0, 1e-8);
+    
+    /* Higher coefficients should NOT all be zero */
+    int nontrivial = 0;
+    for (int i = 1; i < 6; i++) {
+        if (fabs(s_coeffs[i]) > 1e-10) nontrivial++;
+    }
+    if (nontrivial < 3) {
+        FAIL("S-transform is approximately constant — series reversion broken");
+        return;
+    }
+    
+    PASS();
+}
+
+/* ============================================================
+ * Test: MP density integrates correctly for λ=0.5
+ * ============================================================ */
+static void test_mp_density_integral_lambda_half(void) {
+    TEST("MP density integrates correctly for λ=0.5");
+    
+    double lambda = 0.5;
+    double a = (1.0 - sqrt(lambda)) * (1.0 - sqrt(lambda));
+    double b = (1.0 + sqrt(lambda)) * (1.0 + sqrt(lambda));
+    
+    int n_bins = 100000;
+    double dx = (b - a) / n_bins;
+    double integral = 0.0;
+    for (int i = 0; i < n_bins; i++) {
+        double x = a + (i + 0.5) * dx;
+        integral += marchenko_pastur_density(x, lambda, 1.0) * dx;
+    }
+    
+    ASSERT_FEQ(integral, 1.0, 0.01);
+    PASS();
+}
+
+/* ============================================================
+ * Test: MP density integrates correctly for λ=2.0
+ * ============================================================ */
+static void test_mp_density_integral_lambda_two(void) {
+    TEST("MP density integrates correctly for λ=2.0");
+    
+    double lambda = 2.0;
+    double a = (1.0 - sqrt(lambda)) * (1.0 - sqrt(lambda));
+    double b = (1.0 + sqrt(lambda)) * (1.0 + sqrt(lambda));
+    
+    int n_bins = 100000;
+    double dx = (b - a) / n_bins;
+    double integral = 0.0;
+    for (int i = 0; i < n_bins; i++) {
+        double x = a + (i + 0.5) * dx;
+        integral += marchenko_pastur_density(x, lambda, 1.0) * dx;
+    }
+    
+    ASSERT_FEQ(integral, 1.0, 0.01);
+    PASS();
+}
+
+/* ============================================================
  * Main
  * ============================================================ */
 int main(void) {
@@ -743,10 +844,14 @@ int main(void) {
     test_mp_moments();
     test_mp_cumulants();
     test_mp_moments_lambda_half();
+    test_mp_density_integral_lambda_half();
+    test_mp_density_integral_lambda_two();
     
     /* S-transform tests */
     printf("\n[S-transform]\n");
     test_s_transform_mp1();
+    test_s_transform_mp1_exact();
+    test_s_transform_nontrivial();
     test_s_transform_multiply();
     
     /* Validation tests */

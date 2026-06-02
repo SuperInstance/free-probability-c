@@ -139,7 +139,7 @@ void s_transform_from_moments(const double *moments, size_t n, double *s_coeffs)
             for (size_t a = 0; a < j; a++) {
                 if (chi_pow_prev[a] == 0.0) continue;
                 for (size_t b = 0; b < j - a; b++) {
-                    chi_pow_new[a + b] += chi_pow_prev[a] * chi[b];
+                    chi_pow_new[a + b + 1] += chi_pow_prev[a] * chi[b];
                 }
             }
             rhs += psi[k - 1] * chi_pow_new[j - 1];

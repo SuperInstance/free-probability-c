@@ -116,7 +116,8 @@ double marchenko_pastur_density(double x, double lambda, double sigma) {
     
     if (diff_b < 0.0 || diff_x < 0.0) return 0.0;
     
-    double density = sqrt(diff_b * diff_x) / (2.0 * M_PI * sigma * sigma * lambda * x);
+    double lambda_eff = lambda < 1.0 ? lambda : 1.0;
+    double density = sqrt(diff_b * diff_x) / (2.0 * M_PI * sigma * sigma * lambda_eff * x);
     return density;
 }
 
